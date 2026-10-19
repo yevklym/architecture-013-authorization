@@ -29,3 +29,4 @@ To achieve this, the modularization will rely on the base concepts of [the RBAC 
 - IAM writes assignments (platform-mesh/services/iam-service/pkg/fga/invite.go:178)
 - Security-operator maintains account relationships (platform-mesh/operators/security-operator/internal/subroutine/account_tuples.go:99)
 - OpenFGA model defines inheritance (helm-charts/charts/security-operator/values.yaml:171).
+- In some places the IAM service has methods using both FGA and keycloak (e.g. platform-mesh/services/iam-service/pkg/resolver/pm/resolver_service.go:78)
