@@ -1,10 +1,21 @@
 # ADR 013: Authorization Module Boundaries
 
-### Summary
+| Status | Proposed   |
+| ------ | ---------- |
+| Date   | 2026-10-21 |
+
+## Context and Problem Statement
 
 As described in [RFC 008](https://github.com/platform-mesh/architecture/blob/main/rfc/008-platform-mesh-modularization.md), Platform Mesh should support any authorization engine behind the webhook or deployments without a ReBAC authorization engine at all. Deployments without an authorization module would fall back to the Kubernetes RBAC. OpenFGA will remain a default but swappable module.
 
-Core Platform Mesh components are provider-neutral and should not depend on a specific authorization engine.
+Currently, OpenFGA coupling can be found outside the authorization webhook. For example:
+- Security operator manages account relationship tuples.
+- IAM writes role assignments directly into OpenFGA.
+- Search calls FGA to filter results or list accessible accounts.
+
+Today's state would not allow to replace authorization just by replacing the authZ webhook.
+
+The decision is where to establish the authorization boundary which allows core components to work with each supported backend.
 
 To achieve this, the modularization will rely on the base concepts of [the RBAC chain in kcp](https://docs.kcp.io/kcp/main/concepts/authorization/authorizers/) like Kubernetes RBAC, workspace separation and `MaximalPermissionPolicy`. Additional engines are optional and can be integrated using the `SubjectAccessReview` webhook. The developed contract must define how these authorization components interact.
 
