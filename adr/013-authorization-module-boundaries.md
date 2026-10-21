@@ -93,27 +93,9 @@ Alternative IdP integrations may project explicit grants into provider roles or 
 
 The `PlatformMesh` resource allows to configure an authorization module, and `platform-mesh-operator` propagates its configuration to the relevant components. There are no OpenFGA-specific attributes in `AccountInfo`. Core operators, search, shared APIs and libraries, Portal, and IAM service have no dependency on OpenFGA.
 
----
+## Consequences
 
-### Deployment scenarios
-
-- Default: existing authorization with OpenFGA.
-- No authorization module: Platform Mesh uses KCP/K8s authorization functionality.
-- Alternative engine: can be plugged through the authorization contract without making changes to core components.
-
-### Decisions / Open Questions
-
-- IAM: Can we use native RBAC deployments without IAM-service? Where does baseline permissions and backend projection logic go if we want to extract it? (Core operator, separate AuthZ operator, security-operator or combination?)
-
-### Current state
-
-- IAM FGA functionality and K8S Native alternative:
-  - List users and assignments (platform-mesh/services/iam-service/pkg/fga/fga.go:77) -> look up role bindings?
-  - List assignable roles (platform-mesh/services/iam-service/pkg/fga/fga.go:77) -> Roles/ClusterRoles (how do we handle role catalog/descriptions)
-  - Assign and remove roles services/iam-service/pkg/fga/invite.go:178 -> CRUD for RoleBindings/ClusterRoleBindings
-  - Invite a user and assign roles (platform-mesh/services/iam-service/pkg/fga/invite.go:50) -> custom invitation workflow?
-
-- IAM writes assignments (platform-mesh/services/iam-service/pkg/fga/invite.go:178)
-- Security-operator maintains account relationships (platform-mesh/operators/security-operator/internal/subroutine/account_tuples.go:99)
-- OpenFGA model defines inheritance (helm-charts/charts/security-operator/values.yaml:171).
-- In some places the IAM service has methods using both FGA and keycloak (e.g. platform-mesh/services/iam-service/pkg/resolver/pm/resolver_service.go:78)
+- Platform Mesh supports authorization provider replacements.
+- Core authorization is based on kcp mechanisms and IAM provides a common management interface.
+- Removing direct tuple writes to OpenFGA requires migration of existing grants to KRM.
+- Leaner infrastructure if using native RBAC-deployment.
