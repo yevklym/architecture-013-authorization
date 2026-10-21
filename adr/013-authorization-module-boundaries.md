@@ -72,6 +72,27 @@ As described in RFC 008, IAM owns reconciliation of authorization intent into th
 
 Native resources such as `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding` require no additional projection. Additional CRDs should be be used only if existing resources cannot describe a required authorization intent.
 
+### IAM in native RBAC deployments
+
+All three possible Platform Mesh compositions have IAM as a common API for role catalogs/assignments and their lifecycle. The access management functionality must work independently of an identity provider's integration.
+Although kcp can enforce RBAC permissions without IAM, keeping it allows permission-management workflows and Portal integration.
+
+### Provisioning and access grants
+
+Permission assignment and user provisioning have independent of each other lifecycles. Creating an `Invite` does not grant permissions. A workflow may require both, but assignments use the same authorization contract for invited and externally provisioned users. Access management must work when Platform Mesh user provisioning is disabled. The contract defines how an invitation email resolves to an authenticated subject in the relevant organization and issuer scope.
+
+Alternative IdP integrations may project explicit grants into provider roles or claim mappings, but KRM remains the source of authorization intent. Owner, scope, expiry and revocation rules are required for each projection. IAM provides a default reconciliation process into authorization backend.
+
+### Deployment scenarios
+
+| Scenario             | Behavior                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Default with OpenFGA | OpenFGA and its authorization webhook are deployed. Existing role assignment and account inheritance behavior remain supported. |
+| Native RBAC          | No external engine or ReBAC webhook is deployed or registered. IAM implements permission management using native RBAC.          |
+| Alternative engine   | An adapter implements permission checks, projection and query contracts. No changes in core components are required.            |
+
+The `PlatformMesh` resource allows to configure an authorization module, and `platform-mesh-operator` propagates its configuration to the relevant components. There are no OpenFGA-specific attributes in `AccountInfo`. Core operators, search, shared APIs and libraries, Portal, and IAM service have no dependency on OpenFGA.
+
 ---
 
 ### Deployment scenarios
