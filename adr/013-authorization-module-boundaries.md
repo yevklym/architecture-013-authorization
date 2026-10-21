@@ -21,10 +21,14 @@ To achieve this, the modularization will rely on the base concepts of [the RBAC 
 
 ## Decision Drivers
 - **Replaceability:** Core components should not be tied to a specific a authorization engine and be provider-agnostic.
-- **Clear ownership:** Define who manages permissions for each backend
+- **Clear ownership:** Define which manages permissions for each authorization implementation
 - **Rely on base concepts:** Kubernetes RBAC, kcp, `SubjectAccessReview` and KRM resources.
 - **Supported Platform Mesh compositions**: OpenFGA stays a default engine, alternative authorization module can be plugged in. Support deployments without a authorization engine that rely on native RBAC.
 
+## Considered Options
+1.  **Abstract away only the `SubjectAccessReview` webhook:** permission checks become independent of the engine, but it is not enough to decouple IAM and search and handle authorization state management.
+2.  **Define a contract for authorization intent, permission checks and queries:** the contract can be implemented by existing components or a shared authorization service.
+3. **Define the contract that requires a separate operator for every authorization backend:** each authorization module would have own reconciliation component, but makes deployment more complicated for a consumer and moves away ownership of a single reconciler form the IAM service.
 
 ### Deployment scenarios
 
