@@ -18,7 +18,7 @@ Today's state would not allow to replace authorization just by replacing the aut
 
 The decision is where to establish the authorization boundary which allows core components to work with each supported backend.
 
-To achieve this, the modularization will rely on the base concepts of [the RBAC chain in kcp](https://docs.kcp.io/kcp/main/concepts/authorization/authorizers/) like Kubernetes RBAC, workspace separation and `MaximalPermissionPolicy`. Additional engines are optional and can be integrated using the `SubjectAccessReview` webhook. The developed contract must define how these authorization components interact.
+To achieve this, the modularization will rely on the base concepts of [the RBAC chain in kcp](https://docs.kcp.io/kcp/main/concepts/authorization/authorizers/) like Kubernetes RBAC, workspace separation and `MaximalPermissionPolicy`. Additional engines are optional and can be integrated using the `SubjectAccessReview` (SAR) webhook. The developed contract must define how these authorization components interact.
 
 ## Decision Drivers
 
@@ -47,6 +47,20 @@ Authorization modules are integrated through the `SubjectAccessReview` webhook. 
 
 kcp evaluates maximal permission policies (MPP) within its RBAC chain. The complication is that the RBAC chain and the external webhook are separate authorizers -- kcp API server has a built-in RBAC chain, including MPP checks, but it separately calls Platform Mesh’s authorization webhook over HTTPS. That means we cannot assume that every authorization path includes MPP checks. Authorization integration must preserve the applicable workspace and provider boundaries, including configured maximal permission policies, and demonstrate this in contract tests.
 
+### Authorization Contract
+
+| Part                  | Responsibility                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Permission checks     | Evaluate an authenticated subject, groups, account/workspace scope and requested operation. Use `SubjectAccessReview` for the kcp webhook and an engine-neutral interface for service checks.    |
+| Authorization intent  | Describe policies and assignments as KRM resources. Define their scope, revocation rules, ownership, creation and update.                                                                        |
+| Authorization queries | Provide the role catalog and assignments needed by IAM. Provide accessible accounts and resource checks needed by search. Define the expected results and access restrictions for these queries. |
+
+`SubjectAccessReview` can only answer a permission request, it cannot store assignments or list accessible resources. Direct calls to a webhook check only that authorizer., so service checks must preserve the same applicable restrictions as API access. The native implementation can use SAR against the target kcp workspace.
+
+Webhook, IAM, search or other service interpret the same identity, groups and account restrictions in the same way. A user's access should not become broader by simply using a different service. Temporary grants must have documented expiry behavior and possible cache must not extend access violating that expiry rule.
+
+---
+
 ### Deployment scenarios
 
 - Default: existing authorization with OpenFGA.
@@ -60,10 +74,10 @@ kcp evaluates maximal permission policies (MPP) within its RBAC chain. The compl
 ### Current state
 
 - IAM FGA functionality and K8S Native alternative:
-  - List users and assignments (platform-mesh/services/iam-service/pkg/fga/fga.go:77) -> look up role bindings? 
+  - List users and assignments (platform-mesh/services/iam-service/pkg/fga/fga.go:77) -> look up role bindings?
   - List assignable roles (platform-mesh/services/iam-service/pkg/fga/fga.go:77) -> Roles/ClusterRoles (how do we handle role catalog/descriptions)
-  - Assign and remove roles services/iam-service/pkg/fga/invite.go:178 -> CRUD for RoleBindings/ClusterRoleBindings 
-  - Invite a user and assign roles (platform-mesh/services/iam-service/pkg/fga/invite.go:50) -> custom invitation workflow? 
+  - Assign and remove roles services/iam-service/pkg/fga/invite.go:178 -> CRUD for RoleBindings/ClusterRoleBindings
+  - Invite a user and assign roles (platform-mesh/services/iam-service/pkg/fga/invite.go:50) -> custom invitation workflow?
 
 - IAM writes assignments (platform-mesh/services/iam-service/pkg/fga/invite.go:178)
 - Security-operator maintains account relationships (platform-mesh/operators/security-operator/internal/subroutine/account_tuples.go:99)
