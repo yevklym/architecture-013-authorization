@@ -59,6 +59,19 @@ kcp evaluates maximal permission policies (MPP) within its RBAC chain. The compl
 
 Webhook, IAM, search or other service interpret the same identity, groups and account restrictions in the same way. A user's access should not become broader by simply using a different service. Temporary grants must have documented expiry behavior and possible cache must not extend access violating that expiry rule.
 
+### Managed state and ownership
+
+As described in RFC 008, IAM owns reconciliation of authorization intent into the authorization engine. This means one owner for each projected permission, with backend-specific implementations behind the contract. The security-operator produces authorization intent instead of writing directly into OpenFGA. The flow for engine-specific setup looks approximately like this: _KRM authorization intent -> IAM reconciler -> backend implementation -> engine-specific policies and relationships_. With native RBAC, roles and bindings represent the authorization intent themselves. They are managed directly by kcp. No additional projection step is needed.
+
+| Component                          | Responsibility                                                                                                                                                                         |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IAM                                | Expose role and assignment management, validate changes, and persist authorization intent. Provide the default reconciler where backend projection is required.                        |
+| security-operator                  | Produce baseline authorization intent for organization and account lifecycle, including initial access and account relationships.                                                      |
+| Backend implementation used by IAM | Implement the authorization contract using native RBAC resources or engine-specific policies and relationships. Keep implementation-specific identifiers and APIs behind the contract. |
+| kcp and optional webhook           | Evaluate access requests using the configured authorization chain.                                                                                                                     |
+
+Native resources such as `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding` require no additional projection. Additional CRDs should be be used only if existing resources cannot describe a required authorization intent.
+
 ---
 
 ### Deployment scenarios
