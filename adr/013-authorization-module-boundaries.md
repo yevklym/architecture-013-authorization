@@ -6,7 +6,7 @@
 
 ## Context and Problem Statement
 
-As described in [RFC 008](https://github.com/platform-mesh/architecture/blob/main/rfc/008-platform-mesh-modularization.md), Platform Mesh should support any authorization engine behind the webhook or deployments without a ReBAC authorization engine at all. Deployments without an authorization module would fall back to the Kubernetes RBAC. OpenFGA will remain a default but swappable module.
+As described in [RFC 008](../rfc/008-platform-mesh-modularization.md), Platform Mesh should support any authorization engine behind the webhook or deployments without a ReBAC authorization engine at all. Deployments without an authorization module would fall back to the Kubernetes RBAC. OpenFGA will remain a default but swappable module.
 
 Currently, OpenFGA coupling can be found outside the authorization webhook. For example:
 - Security operator manages account relationship tuples.
@@ -18,6 +18,13 @@ Today's state would not allow to replace authorization just by replacing the aut
 The decision is where to establish the authorization boundary which allows core components to work with each supported backend.
 
 To achieve this, the modularization will rely on the base concepts of [the RBAC chain in kcp](https://docs.kcp.io/kcp/main/concepts/authorization/authorizers/) like Kubernetes RBAC, workspace separation and `MaximalPermissionPolicy`. Additional engines are optional and can be integrated using the `SubjectAccessReview` webhook. The developed contract must define how these authorization components interact.
+
+## Decision Drivers
+- **Replaceability:** Core components should not be tied to a specific a authorization engine and be provider-agnostic.
+- **Clear ownership:** Define who manages permissions for each backend
+- **Rely on base concepts:** Kubernetes RBAC, kcp, `SubjectAccessReview` and KRM resources.
+- **Supported Platform Mesh compositions**: OpenFGA stays a default engine, alternative authorization module can be plugged in. Support deployments without a authorization engine that rely on native RBAC.
+
 
 ### Deployment scenarios
 
