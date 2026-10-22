@@ -18,8 +18,6 @@ Today's state would not allow to replace authorization just by replacing the aut
 
 The decision is where to establish the authorization boundary which allows core components to work with each supported backend.
 
-To achieve this, the modularization will rely on the base concepts of [the RBAC chain in kcp](https://docs.kcp.io/kcp/main/concepts/authorization/authorizers/) like Kubernetes RBAC, workspace separation and `MaximalPermissionPolicy`. Additional engines are optional and can be integrated using the `SubjectAccessReview` (SAR) webhook. The developed contract must define how these authorization components interact.
-
 ## Decision Drivers
 
 - **Replaceability:** Core components should not be tied to a specific an authorization engine and be provider-agnostic.
@@ -55,20 +53,20 @@ kcp evaluates maximal permission policies (MPP) within its RBAC chain. The compl
 
 `SubjectAccessReview` can only answer a permission request, it cannot store assignments or list accessible resources. Direct calls to a webhook check only that authorizer, so service checks must preserve the same applicable restrictions as API access. The native implementation can use SAR against the target kcp workspace.
 
-Webhook, IAM, search or other service interpret the same identity, groups and account restrictions in the same way. A user's access should not become broader by simply using a different service. Temporary grants must have documented expiry behavior and possible cache must not extend access violating that expiry rule.
+The authorization contract's role is to provide a common mapping of authenticated subjects, group claims and account scopes into permission checks. The webhook then receives the identity context provided by kcp with SAR. IAM and search get the corresponding context from authentication data using the same configured mappings. A user's access should not become broader by simply using a different service. Temporary grants must have documented expiry behavior and possible cache must not extend access violating that expiry rule.
 
 ### Managed state and ownership
 
 As described in RFC 008, IAM owns reconciliation of authorization intent into the authorization engine. This means one owner for each projected permission, with backend-specific implementations behind the contract. The security-operator produces authorization intent instead of writing directly into OpenFGA. The flow for engine-specific setup looks approximately like this: _KRM authorization intent -> IAM reconciler -> backend implementation -> engine-specific policies and relationships_. With native RBAC, roles and bindings represent the authorization intent themselves.
 
-| Component                          | Responsibility                                                                                                                                                                         |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| IAM                                | Expose role and assignment management, validate changes, and persist authorization intent. Provide the default reconciler where backend projection is required.                        |
-| security-operator                  | Produce intent for initial access and account relationships.                                                                                                                           |
-| Backend implementation used by IAM | Implement the authorization contract using native RBAC resources or engine-specific policies and relationships. Keep implementation-specific identifiers and APIs behind the contract. |
-| kcp and optional webhook           | Evaluate access requests using the configured authorization chain.                                                                                                                     |
+| Component                          | Responsibility                                                                                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IAM                                | Expose role and assignment management, validate changes, and persist authorization intent. Provide the default reconciler where backend projection is required. |
+| security-operator                  | Produce intent for initial access and account relationships.                                                                                                    |
+| Backend implementation used by IAM | Implement the authorization contract using native RBAC resources or engine-specific policies and relationships.                                                 |
+| kcp and optional webhook           | Evaluate access requests using the configured authorization chain.                                                                                              |
 
-Native resources such as `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding` require no additional projection. Additional CRDs should be be used only if existing resources cannot describe a required authorization intent.
+Native resources such as `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding` require no additional projection. Additional CRDs should be used only if existing resources cannot describe a required authorization intent.
 
 ### Provisioning and access grants
 
