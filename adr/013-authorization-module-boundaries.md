@@ -35,6 +35,8 @@ The decision is where to establish the authorization boundary which allows core 
 
 Chosen option: **2. Define a contract for authorization intent, permission checks and queries.** As described [in RFC 008](../rfc/008-platform-mesh-modularization.md#authorization), the approach includes both the `SubjectAccessReview` webhook and the shared KRM authorization intent projected into the engine by IAM Service through backend adapters. The RBAC adapter can use native resources directly if they can express required intent.
 
+The shared permission-check interface describes the authenticated subjects without engine-specific mechanisms such as relationship and inheritance model in OpenFGA. Authorization-engine implementations support such functionality through their own authorization model. Platform Mesh core does not emulate ReBAC in native RBAC.
+
 ### kcp RBAC
 
 To achieve this, the modularization will rely on the base concepts of [the RBAC chain in kcp](https://docs.kcp.io/kcp/main/concepts/authorization/authorizers/). Roles and bindings grant access within a workspace. `APIExport` and `APIBinding` make APIs available across workspaces. An API provider can additionally define a [`MaximalPermissionPolicy`](https://docs.kcp.io/kcp/main/concepts/apis/exporting-apis/#maximal-permission-policy) to limit access to exported resources.
@@ -62,8 +64,8 @@ As described in RFC 008, IAM owns reconciliation of authorization intent into th
 | Component                          | Responsibility                                                                                                                                                  |
 | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IAM                                | Expose role and assignment management, validate changes, and persist authorization intent. Provide the default reconciler where backend projection is required. |
-| security-operator                  | Produce intent for initial access and account relationships.                                                                                                    |
-| Backend implementation used by IAM | Implement the authorization contract using native RBAC resources or engine-specific policies and relationships.                                                 |
+| security-operator                  | Produce base intent for initial organization and account access.                                                                                                |
+| Backend implementation used by IAM | Translate authorization intent and account/resource metadata into the authorization engine.                                                                     |
 | kcp and optional webhook           | Evaluate access requests using the configured authorization chain.                                                                                              |
 
 Native resources such as `Role`, `ClusterRole`, `RoleBinding` and `ClusterRoleBinding` require no additional projection. Additional CRDs should be used only if existing resources cannot describe a required authorization intent.
@@ -76,11 +78,11 @@ Alternative IdP integrations may project explicit grants into provider roles or 
 
 ### Deployment scenarios
 
-| Scenario             | Behavior                                                                                                               |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Default with OpenFGA | OpenFGA and its authorization webhook are deployed.                                                                    |
-| Native RBAC          | No external engine or ReBAC webhook is deployed or registered. IAM implements permission management using native RBAC. |
-| Alternative engine   | An adapter implements permission checks, projection and query contracts. No changes in core components are required.   |
+| Scenario             | Behavior                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Default with OpenFGA | OpenFGA and its authorization webhook are deployed.                                                                   |
+| Native RBAC          | No external engine or RBAC webhook is deployed or registered. IAM implements permission management using native RBAC. |
+| Alternative engine   | An adapter implements permission checks, projection and query contracts. No changes in core components are required.  |
 
 The `PlatformMesh` resource allows to configure an authorization module, and `platform-mesh-operator` propagates its configuration to the relevant components. There are no OpenFGA-specific attributes in `AccountInfo`. Core operators, search, shared APIs and libraries, Portal, and IAM service have no direct dependency on OpenFGA.
 
@@ -89,4 +91,5 @@ The `PlatformMesh` resource allows to configure an authorization module, and `pl
 - Platform Mesh supports authorization provider replacements.
 - Core authorization is based on kcp's evaluation of RBAC resources and IAM's common permission management interface.
 - Removing direct tuple writes to OpenFGA requires migration of existing grants to KRM.
+- Different authorization models in different configurations.
 - Leaner infrastructure if using native RBAC-deployment.
