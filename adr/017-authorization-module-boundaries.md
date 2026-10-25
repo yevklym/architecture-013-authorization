@@ -1,8 +1,8 @@
-# ADR 013: Authorization Module Boundaries
+# ADR 017: Authorization Module Boundaries
 
 | Status | Proposed   |
 | ------ | ---------- |
-| Date   | 2026-10-21 |
+| Date   | 2026-10-25 |
 
 ## Context and Problem Statement
 
